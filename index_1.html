@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FFD43B">
+<meta name="description" content="Psych: the bluffing party game. Make up answers, catch your friends lying.">
+<title>Psych</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+Bengali:wght@400;600&display=swap">
+<style>
+/* Layout: one phone-width column, Kolkata-taxi yellow ground, ink-bordered game cards with hard offset shadows. */
+:root{
+  --bg:#FFD43B; --surface:#FFFBEA; --surface-2:#FFF3C4; --ink:#1A1712; --muted:#5D5545;
+  --line:#1A1712; --shadow:#1A1712; --btn:#1A1712; --btn-fg:#FFD43B;
+  --lie:#C8255F; --lie-soft:#FBD9E6; --truth:#0B7F70; --truth-soft:#CDEFE9; --warn:#9A5B00;
+  --display:"Bungee", "Arial Black", Impact, sans-serif;
+  --body:"Figtree", "Noto Sans Bengali", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#16140F; --surface:#221F18; --surface-2:#2C281F; --ink:#F6F0DC; --muted:#AAA18A;
+  --line:#4C4535; --shadow:#000000; --btn:#FFD43B; --btn-fg:#16140F;
+  --lie:#FF6FA3; --lie-soft:#3A1E29; --truth:#3CD3BB; --truth-soft:#173430; --warn:#FFB547; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#16140F; --surface:#221F18; --surface-2:#2C281F; --ink:#F6F0DC; --muted:#AAA18A;
+  --line:#4C4535; --shadow:#000000; --btn:#FFD43B; --btn-fg:#16140F;
+  --lie:#FF6FA3; --lie-soft:#3A1E29; --truth:#3CD3BB; --truth-soft:#173430; --warn:#FFB547; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.45; padding-inline:16px; padding-block:0 48px}
+.app{max-width:560px; margin:0 auto}
+.top{display:flex; align-items:center; justify-content:space-between; gap:12px; padding-block:18px 14px}
+.wordmark{font-family:var(--display); font-size:26px; letter-spacing:.02em; line-height:1; margin:0; cursor:pointer}
+.wordmark span{display:inline-block; background:var(--ink); color:var(--bg); padding:4px 10px 1px; transform:rotate(-3deg)}
+.top small{font-size:12px; color:var(--muted); text-align:right; max-width:16ch}
+h1,h2,h3{text-wrap:balance; margin:0}
+.stack{display:flex; flex-direction:column; gap:16px}
+.card{background:var(--surface); border:2px solid var(--line); border-radius:var(--r); box-shadow:4px 4px 0 var(--shadow); padding:18px; min-width:0}
+.card.flat{box-shadow:none}
+.eyebrow{font-size:12px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--muted)}
+.label{display:block; font-size:13px; font-weight:700; margin-bottom:6px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.row > .grow{flex:1 1 160px; min-width:0}
+.inp, textarea.inp{width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--surface); border:2px solid var(--line); border-radius:10px; padding:12px 14px; outline:none}
+.inp:focus-visible, textarea.inp:focus-visible{box-shadow:0 0 0 3px var(--bg), 0 0 0 5px var(--ink)}
+textarea.inp{font-size:15px; min-height:96px; resize:vertical}
+.inp.code{font-family:var(--mono); font-weight:700; letter-spacing:.3em; text-transform:uppercase; text-align:center; font-size:22px}
+.btn{font:inherit; font-weight:800; font-size:16px; border:2px solid var(--line); background:var(--btn); color:var(--btn-fg); border-radius:12px; padding:12px 18px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); transition:transform .06s, box-shadow .06s}
+.btn:active{transform:translate(2px,2px); box-shadow:1px 1px 0 var(--shadow)}
+.btn:focus-visible, .ghost:focus-visible, .segb:focus-visible, .opt:focus-visible, .chip-btn:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
+.btn[disabled]{opacity:.45; cursor:not-allowed; transform:none}
+.btn.block{width:100%}
+.btn.alt{background:var(--surface); color:var(--ink)}
+.ghost{font:inherit; font-weight:700; font-size:14px; background:none; border:none; color:var(--muted); text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:6px 2px}
+.seg{display:flex; flex-wrap:wrap; gap:8px}
+.segb{font:inherit; font-weight:700; font-size:14px; padding:8px 12px; border-radius:999px; border:2px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer}
+.segb.on{background:var(--ink); color:var(--surface)}
+.hero h2{font-family:var(--display); font-size:clamp(28px,8vw,40px); line-height:1.02; letter-spacing:.01em}
+.hero p{margin:10px 0 0; max-width:46ch}
+.code-big{font-family:var(--mono); font-weight:700; font-size:clamp(44px,15vw,64px); letter-spacing:.18em; line-height:1}
+.players{display:flex; flex-wrap:wrap; gap:8px}
+.pchip{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:2px solid var(--line); background:var(--surface-2); font-weight:700; font-size:14px; max-width:100%}
+.pchip .dot{width:10px; height:10px; border-radius:50%; flex:none}
+.pchip.done{background:var(--truth-soft)}
+.pchip.wait{opacity:.6; border-style:dashed}
+.pchip .tag{font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.pchip .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chip-btn{font:inherit; font-size:12px; font-weight:800; background:none; border:none; color:var(--lie); cursor:pointer; padding:0 2px}
+.roundbar{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.roundbar .rn{font-family:var(--display); font-size:18px}
+.timer{font-family:var(--mono); font-weight:700; font-size:20px; font-variant-numeric:tabular-nums}
+.timer.low{color:var(--lie)}
+.track{height:8px; border-radius:99px; background:var(--surface-2); border:2px solid var(--line); overflow:hidden; margin-top:8px}
+.track i{display:block; height:100%; background:var(--ink); transition:width .25s linear}
+.qcard{position:relative; padding-top:26px}
+.qcard .pack{position:absolute; top:-13px; left:14px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; background:var(--ink); color:var(--surface); padding:4px 9px; border-radius:6px}
+.qtext{font-size:clamp(21px,5.6vw,27px); font-weight:800; line-height:1.22; text-wrap:balance}
+.hint{margin-top:10px; font-size:14px; color:var(--muted)}
+.opts{display:flex; flex-direction:column; gap:10px}
+.opt{font:inherit; text-align:left; width:100%; background:var(--surface); color:var(--ink); border:2px solid var(--line); border-radius:12px; padding:14px 16px; font-size:18px; font-weight:700; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); display:flex; justify-content:space-between; gap:12px; align-items:center}
+.opt:hover:not([disabled]){background:var(--surface-2)}
+.opt[disabled]{cursor:default; box-shadow:none; opacity:.7}
+.opt .mine{font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); flex:none}
+.res{border:2px solid var(--line); border-radius:12px; padding:12px 14px; background:var(--surface); display:flex; flex-direction:column; gap:8px; animation:pop .35s ease both}
+.res.truth{background:var(--truth-soft); border-color:var(--truth)}
+.res .who{font-size:12px; font-weight:800; letter-spacing:.07em; text-transform:uppercase}
+.res.truth .who{color:var(--truth)}
+.res.lie .who{color:var(--lie)}
+.res .txt{font-size:18px; font-weight:800}
+.res .voters{font-size:14px; color:var(--muted)}
+@keyframes pop{from{transform:translateY(6px)} to{transform:none}}
+.points{display:flex; flex-wrap:wrap; gap:8px}
+.pts{font-weight:800; font-size:14px; padding:5px 10px; border-radius:8px; background:var(--surface-2); border:2px solid var(--line)}
+.pts b{font-family:var(--mono)}
+.board{display:flex; flex-direction:column}
+.brow{display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px dashed var(--line)}
+.brow:last-child{border-bottom:none}
+.brow .rk{font-family:var(--display); font-size:18px}
+.brow .nm{font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.brow .sc{font-family:var(--mono); font-weight:700; font-variant-numeric:tabular-nums; font-size:18px}
+.brow.first .rk, .brow.first .sc{color:var(--truth)}
+.awards{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
+.award{border:2px solid var(--line); border-radius:12px; padding:12px; background:var(--surface-2)}
+.award .t{font-family:var(--display); font-size:15px}
+.award .n{font-weight:800; margin-top:4px}
+.award .d{font-size:13px; color:var(--muted)}
+.rules{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px}
+.rules b{font-family:var(--mono)}
+.qlist{display:flex; flex-direction:column; gap:6px; max-height:220px; overflow:auto; margin-top:10px}
+.qitem{display:flex; gap:8px; align-items:flex-start; font-size:14px; padding:8px 10px; background:var(--surface-2); border-radius:8px}
+.qitem .qa{flex:1; min-width:0}
+.qitem .qa i{color:var(--truth); font-style:normal; font-weight:700}
+.banner{border:2px dashed var(--line); border-radius:12px; padding:12px 14px; font-size:14px; background:var(--surface-2)}
+.banner.warn{border-color:var(--warn); color:var(--ink)}
+.lobbyrow{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px dashed var(--line)}
+.lobbyrow:last-child{border-bottom:none}
+.lobbyrow .c{font-family:var(--mono); font-weight:700; letter-spacing:.15em}
+.err{color:var(--lie); font-weight:700; font-size:14px; min-height:1em}
+.packgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px}
+.pack-t{display:flex; gap:10px; align-items:flex-start; border:2px solid var(--line); border-radius:10px; padding:10px; cursor:pointer; background:var(--surface)}
+.pack-t input{margin-top:3px; accent-color:var(--ink); width:18px; height:18px; flex:none}
+.pack-t b{display:block; font-size:14px}
+.pack-t span{font-size:12px; color:var(--muted)}
+.locked{font-size:20px; font-weight:800; padding:12px 14px; border-radius:10px; background:var(--surface-2); border:2px dashed var(--line); word-break:break-word}
+#toast{position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); background:var(--ink); color:var(--surface); padding:10px 16px; border-radius:10px; font-weight:700; font-size:14px; max-width:calc(100% - 32px); z-index:5}
+details summary{cursor:pointer; font-weight:800}
+@media (prefers-reduced-motion: reduce){ .res{animation:none} .track i{transition:none} .btn{transition:none} }
+
+html{-webkit-text-size-adjust:100%}
+body{margin:0; min-height:100vh; padding-top:env(safe-area-inset-top,0px); padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
+[hidden]{display:none!important}
+.netbar{position:sticky; top:0; z-index:4; margin-inline:-16px; padding:8px 16px; background:var(--ink); color:var(--surface); font-size:14px; font-weight:700; text-align:center}
+.sharerow{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+a.btn{text-decoration:none; display:inline-block}
+.confirm{color:var(--lie)!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="netbar" id="netbar" hidden></div>
+  <header class="top">
+    <h1 class="wordmark" id="home-link" title="Psych"><span>PSYCH</span></h1>
+    <small>Lie well. Spot the truth.</small>
+  </header>
+  <main id="main"></main>
+</div>
+<div id="toast" hidden></div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>if (typeof Peer === "undefined") document.write('<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
+<script>
+const PACKS = {
+  word: { name: "Word Up", blurb: "Real weird words. Invent their meaning.", t: "fact", qs: [
+    ["What does 'petrichor' mean?", "The smell of rain on dry earth"],
+    ["What is 'defenestration'?", "Throwing someone out of a window"],
+    ["What is a 'borborygmus'?", "A rumbling noise from your stomach"],
+    ["What is a 'snollygoster'?", "A shrewd, unprincipled person"],
+    ["What is a 'gongoozler'?", "Someone who idly watches boats on canals"],
+    ["What is an 'ultracrepidarian'?", "Someone who gives opinions on things they know nothing about"],
+    ["What is a 'quockerwodger'?", "A wooden puppet on strings"],
+    ["What does it mean to 'bumfuzzle' someone?", "To confuse them"],
+    ["What is 'formication'?", "The feeling of insects crawling on your skin"],
+    ["What does 'absquatulate' mean?", "To leave suddenly"],
+    ["What is 'crapulence'?", "Feeling sick from eating or drinking too much"],
+    ["What is 'pandiculation'?", "Stretching and yawning when you wake up"],
+    ["What is 'tmesis'?", "Putting a word inside another word, like abso-bloody-lutely"],
+    ["In Scotland, what does it mean to be 'wabbit'?", "Exhausted"],
+    ["What does 'erinaceous' mean?", "Like a hedgehog"],
+    ["What does 'nudiustertian' refer to?", "The day before yesterday"],
+    ["What is 'zugzwang' in chess?", "When every possible move makes your position worse"],
+    ["What is 'apricity'?", "The warmth of the sun in winter"],
+    ["What are 'phosphenes'?", "The lights you see when you rub your closed eyes"],
+    ["What is an 'agelast'?", "Someone who never laughs"],
+    ["What is a 'tittle'?", "The dot over a lowercase i or j"],
+    ["What is an 'aglet'?", "The plastic tip on a shoelace"],
+    ["What is the '#' symbol officially called?", "Octothorpe"],
+    ["What does 'sesquipedalian' describe?", "Someone who uses long words"],
+    ["What is the 'Mpemba effect'?", "Hot water sometimes freezing faster than cold"],
+    ["What is 'lethologica'?", "Being unable to remember the word you want"],
+    ["What is 'limerence'?", "The state of being infatuated with someone"],
+    ["What is a 'flibbertigibbet'?", "A silly, overly talkative person"],
+    ["What is a 'hobbledehoy'?", "A clumsy, awkward teenage boy"],
+    ["What is a 'mumpsimus'?", "Someone who sticks to a mistake even after being corrected"],
+    ["What does 'cattywampus' mean?", "Crooked or out of line"],
+    ["What is 'lalochezia'?", "Swearing to relieve stress or pain"],
+    ["What is a 'taradiddle'?", "A petty lie"],
+    ["What does 'widdershins' mean?", "Anticlockwise"],
+    ["What is your 'philtrum'?", "The groove between your nose and upper lip"],
+    ["What is your 'glabella'?", "The space between your eyebrows"],
+    ["What is the 'lunula'?", "The white half-moon at the base of a fingernail"],
+    ["What is the 'purlicue'?", "The space between your thumb and forefinger"],
+    ["What is the 'canthus'?", "The corner of the eye where the eyelids meet"],
+    ["What are the 'rasceta'?", "The creases on the inside of your wrist"],
+    ["What is a 'vagitus'?", "A newborn baby's first cry"],
+    ["What is 'sternutation'?", "Sneezing"],
+    ["What is 'oscitation'?", "Yawning"],
+    ["What is 'eructation'?", "Burping"],
+    ["What is 'singultus'?", "Hiccups"],
+    ["What is 'horripilation'?", "Goosebumps"],
+    ["What does 'hypnopompic' describe?", "The state between sleep and waking up"],
+    ["What is a 'hypnic jerk'?", "The sudden twitch you get as you fall asleep"],
+    ["What is 'sphenopalatine ganglioneuralgia'?", "Brain freeze"],
+    ["What is a 'susurrus'?", "A soft whispering or rustling sound"],
+    ["What does 'crepuscular' mean?", "Active at twilight"],
+    ["What does 'vespertine' mean?", "Active in the evening"],
+    ["What does 'matutinal' mean?", "Happening in the morning"],
+    ["What is a 'quidnunc'?", "A nosy gossip"],
+    ["What is a 'snickersnee'?", "A large knife"],
+    ["What is a 'cockalorum'?", "A self-important little man"],
+    ["What is a 'lickspittle'?", "A grovelling flatterer"],
+    ["What is a 'bibliopole'?", "A dealer in rare books"],
+    ["What is a 'bibliotaph'?", "Someone who hoards books"],
+    ["In Japanese, what is 'tsundoku'?", "Buying books and never reading them"],
+    ["In German, what is 'kummerspeck'?", "Weight gained from emotional overeating"],
+    ["In German, what is a 'backpfeifengesicht'?", "A face that badly needs a slap"],
+    ["In German, what is 'drachenfutter'?", "A gift to calm an angry spouse"],
+    ["In German, what is 'torschlusspanik'?", "Panic that time is running out to achieve things"],
+    ["In German, what is 'fernweh'?", "A longing for faraway places"],
+    ["What does the Yaghan word 'mamihlapinatapai' describe?", "A look between two people each hoping the other will make the first move"],
+    ["In Scots, what is a 'tartle'?", "Hesitating when introducing someone whose name you've forgotten"],
+    ["In Russian, what is a 'pochemuchka'?", "Someone who asks too many questions"],
+    ["In Brazilian Portuguese, what is 'cafuné'?", "Running your fingers through a loved one's hair"],
+    ["In Norwegian, what is 'utepils'?", "The first beer drunk outdoors on a sunny day"],
+    ["In Georgian, what is 'shemomedjamo'?", "Eating past fullness because the food is so good"],
+    ["In Japanese, what is 'boketto'?", "Gazing vacantly into the distance"],
+    ["In Japanese, what is 'age-otori'?", "Looking worse after a haircut"],
+    ["In Filipino, what is 'gigil'?", "The urge to squeeze something unbearably cute"],
+    ["In Hawaiian, what is 'pana po'o'?", "Scratching your head to help you remember something"],
+    ["In Indonesian, what is a 'jayus'?", "A joke so bad you have to laugh"],
+    ["What is 'l'esprit de l'escalier'?", "Thinking of the perfect comeback too late"],
+    ["In Finnish, what is 'kalsarikännit'?", "Drinking at home alone in your underwear"],
+    ["In Inuit, what is 'iktsuarpok'?", "Going outside again and again to check if someone is coming"],
+    ["In Japanese, what is 'komorebi'?", "Sunlight filtering through tree leaves"],
+    ["In Spanish, what is 'sobremesa'?", "Lingering at the table chatting after a meal"],
+    ["In Italian, what is a 'culaccino'?", "The ring a cold glass leaves on a table"],
+    ["In Swedish, what is 'resfeber'?", "Nervous excitement before a journey"],
+    ["In Swedish, what does 'lagom' mean?", "Just the right amount"],
+    ["What is a 'grawlix'?", "Symbols used in place of a swear word, like #@$%!"],
+    ["What is an 'interrobang'?", "A punctuation mark combining ? and !"],
+    ["What is a 'pilcrow'?", "The paragraph symbol ¶"],
+    ["What is an 'obelus'?", "The division sign ÷"],
+    ["What is a 'virgule'?", "A forward slash"],
+    ["What is a 'lemniscate'?", "The infinity symbol"],
+    ["What is the 'punt' on a wine bottle?", "The dimple in the bottom"],
+    ["What is the 'ferrule' on a pencil?", "The metal band that holds the eraser"],
+    ["What is a 'zarf'?", "A holder for a handleless coffee cup"],
+    ["What is the 'harp' on a lamp?", "The metal frame that holds the shade"],
+    ["What is the 'rowel' on a cowboy's boot?", "The spiky wheel on the spur"],
+    ["What is 'dottle'?", "Unburnt tobacco left in a pipe"],
+    ["What is a 'muntin'?", "The strip between panes of glass in a window"],
+    ["What is an 'escutcheon'?", "The metal plate around a keyhole"],
+    ["What is the 'gnomon' on a sundial?", "The part that casts the shadow"],
+    ["What is 'chad'?", "The bits of paper punched out by a hole punch"],
+    ["What is the 'armscye'?", "The armhole of a garment"],
+    ["What is a 'placket'?", "The strip of fabric holding the buttons on a shirt"],
+    ["What is the 'tang' of a knife?", "The part of the blade that goes into the handle"],
+    ["What is a watch's 'bezel'?", "The ring around the watch face"],
+    ["What is a 'zenzizenzizenzic'?", "A number raised to the eighth power"],
+    ["What is a 'googol'?", "1 followed by 100 zeros"],
+    ["What does 'jentacular' relate to?", "Breakfast"],
+    ["What does it mean to 'groak'?", "To silently watch people eat, hoping they'll share"],
+    ["What is a 'gobemouche'?", "A gullible person who believes anything"],
+    ["What does it mean to 'cachinnate'?", "To laugh loudly"],
+    ["What are the 'collywobbles'?", "Butterflies in your stomach"],
+    ["What is 'dysania'?", "Difficulty getting out of bed in the morning"],
+    ["What is 'clinomania'?", "An obsessive desire to stay in bed"],
+    ["What is an 'abecedarian'?", "Someone learning the alphabet"],
+    ["What is 'lucubration'?", "Studying late into the night"],
+    ["What does 'hircine' mean?", "Goat-like"],
+    ["What does 'vulpine' mean?", "Fox-like"],
+    ["What does 'ursine' mean?", "Bear-like"],
+    ["What does 'vermicular' mean?", "Worm-like"],
+    ["What is 'omphaloskepsis'?", "Contemplating your own belly button"],
+    ["What is 'ergophobia'?", "Fear of work"],
+    ["What is 'arachibutyrophobia'?", "Fear of peanut butter sticking to the roof of your mouth"],
+    ["What is 'nomophobia'?", "Fear of being without your mobile phone"],
+    ["What is 'triskaidekaphobia'?", "Fear of the number 13"],
+    ["What is 'pogonophobia'?", "Fear of beards"],
+    ["What is 'ablutophobia'?", "Fear of bathing"],
+    ["What is 'mageirocophobia'?", "Fear of cooking"],
+    ["What is 'bruxism'?", "Grinding your teeth"],
+    ["What is a 'bumbershoot'?", "An umbrella"],
+    ["What did people in old Edinburgh shout when yelling 'gardyloo'?", "A warning before throwing waste out of a window"],
+    ["What is 'apophenia'?", "Seeing patterns in random things"],
+    ["What is 'pareidolia'?", "Seeing faces in everyday objects"],
+    ["In German, what is 'sitzfleisch'?", "The ability to sit through long, boring tasks"],
+    ["What does 'bloviate' mean?", "To talk at length in a pompous way"],
+    ["What is 'floccinaucinihilipilification'?", "Judging something to be worthless"],
+    ["What is 'pneumonoultramicroscopicsilicovolcanoconiosis'?", "A lung disease from breathing in fine volcanic dust"],
+    ["What is a 'mondegreen'?", "A misheard song lyric"],
+    ["What is an 'eggcorn'?", "A misheard word that still makes sense, like 'old-timer's disease'"],
+    ["What is a 'spoonerism'?", "Swapping the first sounds of two words"],
+    ["What is an 'aptronym'?", "A name that suits the person's job, like Usain Bolt"],
+    ["What is a 'tautonym'?", "A species name where both parts are the same, like Gorilla gorilla"],
+    ["What is a 'contronym'?", "A word that is its own opposite, like 'sanction'"],
+    ["What is a 'retronym'?", "A new name for an old thing, like 'landline'"],
+    ["What is a 'pangram'?", "A sentence that uses every letter of the alphabet"],
+    ["What is a 'lipogram'?", "Writing that avoids one particular letter"],
+    ["What is the 'snood' on a turkey?", "The fleshy flap hanging over its beak"]
+  ]},
+  facts: { name: "Is That a Fact?", blurb: "Bizarre but true. Fill the blank.", t: "fact", qs: [
+    ["A group of flamingos is called a ____.", "Flamboyance"],
+    ["A group of owls is called a ____.", "Parliament"],
+    ["Play-Doh was first sold as a ____.", "Wallpaper cleaner"],
+    ["Bubble wrap was originally invented as ____.", "Textured wallpaper"],
+    ["Wombats are famous for poop shaped like ____.", "Cubes"],
+    ["An octopus has ____ hearts.", "Three"],
+    ["Before it was Google, the search engine was called ____.", "BackRub"],
+    ["In Switzerland it's illegal to own just one ____.", "Guinea pig"],
+    ["Honey found in ancient Egyptian tombs was still ____.", "Edible"],
+    ["Scotland's national animal is the ____.", "Unicorn"],
+    ["Bananas are slightly ____.", "Radioactive"],
+    ["The inventor of the Pringles can had his ashes buried in ____.", "A Pringles can"],
+    ["Cleopatra lived closer in time to ____ than to the building of the Great Pyramid.", "The Moon landing"],
+    ["When Nintendo started in 1889, it made ____.", "Playing cards"],
+    ["Sea otters ____ while they sleep so they don't drift apart.", "Hold hands"],
+    ["A shrimp's heart is in its ____.", "Head"],
+    ["The fear of long words is called ____.", "Hippopotomonstrosesquippedaliophobia"],
+    ["The animal whose fingerprints look almost identical to humans' is the ____.", "Koala"],
+    ["A 'jiffy' is a real unit of time in physics used for ____.", "The time light takes to travel one centimetre"],
+    ["The national sport of Bhutan is ____.", "Archery"],
+    ["Snails can sleep for up to ____.", "Three years"],
+    ["The first product scanned with a barcode was a pack of ____.", "Wrigley's chewing gum"],
+    ["A group of ferrets is called a ____.", "Business"],
+    ["A group of rhinos is called a ____.", "Crash"],
+    ["A group of jellyfish is called a ____.", "Smack"],
+    ["A group of porcupines is called a ____.", "Prickle"],
+    ["A group of zebras is called a ____.", "Dazzle"],
+    ["A group of hippos is called a ____.", "Bloat"],
+    ["A group of giraffes is called a ____.", "Tower"],
+    ["A group of ravens is called an ____.", "Unkindness"],
+    ["A group of hedgehogs is called an ____.", "Array"],
+    ["A group of cats is called a ____.", "Clowder"],
+    ["A group of kittens is called a ____.", "Kindle"],
+    ["A group of parrots is called a ____.", "Pandemonium"],
+    ["A group of lemurs is called a ____.", "Conspiracy"],
+    ["A group of pandas is called an ____.", "Embarrassment"],
+    ["A group of sharks is called a ____.", "Shiver"],
+    ["A group of toads is called a ____.", "Knot"],
+    ["A group of wombats is called a ____.", "Wisdom"],
+    ["A baby echidna is called a ____.", "Puggle"],
+    ["A baby hedgehog is called a ____.", "Hoglet"],
+    ["A baby puffin is called a ____.", "Puffling"],
+    ["A female ferret is called a ____.", "Jill"],
+    ["A baby oyster is called ____.", "Spat"],
+    ["Flamingos are pink because of ____.", "The shrimp and algae they eat"],
+    ["Starfish have no ____.", "Brain"],
+    ["Octopus blood is ____.", "Blue"],
+    ["A cockroach can live for a week without its ____.", "Head"],
+    ["Butterflies taste with their ____.", "Feet"],
+    ["Crickets hear through their ____.", "Legs"],
+    ["Hummingbirds are the only birds that can fly ____.", "Backwards"],
+    ["Adult elephants can't ____.", "Jump"],
+    ["Under its white fur, a polar bear's skin is ____.", "Black"],
+    ["Cats can't taste ____.", "Sweetness"],
+    ["A giraffe has the same number of neck bones as a ____.", "Human"],
+    ["Sharks existed on Earth before ____.", "Trees"],
+    ["A sloth can hold its breath longer than a ____.", "Dolphin"],
+    ["Owls can't move their ____.", "Eyes"],
+    ["Some male penguins 'propose' to a mate with a ____.", "Pebble"],
+    ["Dolphins sleep with ____.", "One eye open"],
+    ["Rats make laughing sounds when they're ____.", "Tickled"],
+    ["Goats have ____-shaped pupils.", "Rectangular"],
+    ["A blue whale's tongue weighs about as much as an ____.", "Elephant"],
+    ["In seahorses, it's the ____ who gives birth.", "Male"],
+    ["A woodpecker's tongue wraps around its ____.", "Skull"],
+    ["In experiments, pigeons learned to tell apart paintings by ____.", "Monet and Picasso"],
+    ["Horned lizards defend themselves by squirting ____ from their eyes.", "Blood"],
+    ["Sea cucumbers breathe through their ____.", "Bottom"],
+    ["The axolotl can regrow its ____.", "Limbs"],
+    ["An ostrich's eye is bigger than its ____.", "Brain"],
+    ["Squirrels accidentally plant thousands of ____ every year.", "Trees"],
+    ["Tiny tardigrades have survived exposure to ____.", "Outer space"],
+    ["Ketchup was sold in the 1830s as a ____.", "Medicine"],
+    ["The original Coca-Cola recipe contained ____.", "Cocaine"],
+    ["Before the 1600s, most cultivated carrots were ____.", "Purple"],
+    ["Peanuts aren't nuts. They're ____.", "Legumes"],
+    ["Botanically, strawberries aren't berries but ____ are.", "Bananas"],
+    ["The food said to be the most stolen in the world is ____.", "Cheese"],
+    ["A pineapple takes about ____ to grow.", "Two years"],
+    ["Apples float because they're about 25% ____.", "Air"],
+    ["Each cashew nut grows hanging from the bottom of a ____.", "Cashew apple"],
+    ["Fortune cookies were popularised in ____, not China.", "America"],
+    ["German chocolate cake is named after ____.", "A man called Sam German"],
+    ["Caesar salad was invented in ____.", "Mexico"],
+    ["Nachos are named after ____.", "The man who invented them"],
+    ["Worcestershire sauce is made with fermented ____.", "Anchovies"],
+    ["You can test whether cranberries are ripe because they ____.", "Bounce"],
+    ["The holes in Swiss cheese are called ____.", "Eyes"],
+    ["White chocolate isn't technically chocolate because it has no ____.", "Cocoa solids"],
+    ["The popsicle was invented by an ____.", "11-year-old boy"],
+    ["Hawaiian pizza was invented in ____.", "Canada"],
+    ["Chicken tikka masala is widely claimed to have been invented in ____.", "Glasgow"],
+    ["The shortest war in history lasted about ____.", "38 minutes"],
+    ["Napoleon was once attacked by a swarm of ____.", "Rabbits"],
+    ["Oxford University is older than the ____.", "Aztec Empire"],
+    ["Ancient Romans used ____ as mouthwash.", "Urine"],
+    ["Before alarm clocks, people paid a '____' to tap on their windows.", "Knocker-upper"],
+    ["The world's first webcam watched a ____.", "Coffee pot"],
+    ["The first item ever sold on eBay was a ____.", "Broken laser pointer"],
+    ["The first video ever uploaded to YouTube was filmed at a ____.", "Zoo"],
+    ["The Eiffel Tower gets taller in ____.", "Summer"],
+    ["The Mona Lisa has no ____.", "Eyebrows"],
+    ["Lego is one of the world's biggest makers of ____.", "Tyres"],
+    ["The '&' symbol was once taught as the 27th ____.", "Letter of the alphabet"],
+    ["The only letter that doesn't appear in any US state name is ____.", "Q"],
+    ["Alaska is the most northern, most western and most ____ US state.", "Eastern"],
+    ["There's a village in Norway called ____.", "Hell"],
+    ["Australia is wider than the ____.", "Moon"],
+    ["Russia has a bigger surface area than ____.", "Pluto"],
+    ["On Venus, a day is longer than a ____.", "Year"],
+    ["There are more possible games of chess than ____ in the observable universe.", "Atoms"],
+    ["Saturn is so light it would ____ in a big enough bathtub.", "Float"],
+    ["In space, two clean pieces of the same metal can ____.", "Weld themselves together"],
+    ["The smell of freshly cut grass is the plant's ____.", "Distress signal"],
+    ["Humans share about 60% of their genes with ____.", "Bananas"],
+    ["Your stomach grows a new lining every ____.", "Few days"],
+    ["By force, the strongest muscle in your body is in your ____.", "Jaw"],
+    ["Babies are born with about ____ bones.", "300"],
+    ["The only part of your body with no blood supply is the ____.", "Cornea"],
+    ["Your fingernails grow fastest on your ____ hand.", "Dominant"],
+    ["Thomas Edison's supposed last breath is kept in a ____.", "Test tube"],
+    ["The ashes of the inventor of the modern Frisbee were made into ____.", "Frisbees"],
+    ["The inventor of the Rubik's Cube took about ____ to solve it.", "A month"],
+    ["Bubble gum is pink because ____.", "It was the only colouring the inventor had"],
+    ["The word 'muscle' comes from the Latin for ____.", "Little mouse"],
+    ["The word 'salary' comes from the Latin for ____.", "Salt"],
+    ["'Avocado' comes from an Aztec word meaning ____.", "Testicle"],
+    ["The word 'nerd' first appeared in a book by ____.", "Dr. Seuss"],
+    ["'OK' began as a joke abbreviation of ____.", "Oll korrect"],
+    ["The word 'robot' comes from a Czech word meaning ____.", "Forced labour"],
+    ["The word 'clue' originally meant a ____.", "Ball of thread"],
+    ["'Quarantine' comes from the Italian for ____.", "Forty days"],
+    ["The word 'disaster' literally means ____.", "Bad star"],
+    ["The word 'jumbo' comes from the name of a famous ____.", "Elephant"],
+    ["The kiwi fruit used to be called the ____.", "Chinese gooseberry"],
+    ["Bulls charge at a matador's cape because of its ____, not its colour.", "Movement"],
+    ["Goldfish can remember things for ____.", "Months"],
+    ["Mr. Potato Head was the first toy ever advertised on ____.", "Television"],
+    ["Barbie's full name is ____.", "Barbara Millicent Roberts"],
+    ["The Monopoly man is officially called ____.", "Rich Uncle Pennybags"],
+    ["Pac-Man's shape was inspired by a ____.", "Pizza with a slice missing"],
+    ["Super Mario was originally called ____.", "Jumpman"],
+    ["The Twitter bird is named ____.", "Larry"],
+    ["Apple's very first logo showed ____.", "Isaac Newton under a tree"],
+    ["Amazon was almost named ____.", "Cadabra"],
+    ["Starbucks is named after a character in ____.", "Moby-Dick"],
+    ["Nokia started out as a ____.", "Paper mill"],
+    ["Samsung started out selling ____.", "Dried fish and groceries"],
+    ["In Italian, the '@' symbol is called 'chiocciola', which means ____.", "Snail"],
+    ["The longest recorded bout of hiccups lasted ____.", "68 years"],
+    ["Cleopatra was ethnically ____, not Egyptian.", "Greek"],
+    ["Real Viking helmets did not have ____.", "Horns"],
+    ["For his time, Napoleon was actually ____ height.", "Average"],
+    ["France last used the guillotine for an execution in ____.", "1977"],
+    ["Before rubber erasers, people rubbed out pencil with ____.", "Bread"],
+    ["Early toothbrushes had bristles made of ____.", "Pig hair"],
+    ["Ancient Egyptians slept with their heads on ____.", "Stone headrests"],
+    ["In ancient Greece, throwing an ____ at someone was a marriage proposal.", "Apple"],
+    ["When it was new, the Statue of Liberty was ____.", "Shiny copper brown"],
+    ["The Leaning Tower of Pisa took about ____ years to finish.", "200"],
+    ["The Hundred Years' War actually lasted ____ years.", "116"],
+    ["The famous footage of lemmings jumping off a cliff was staged by ____.", "Disney"],
+    ["The Great Wall of China can't be seen from ____ with the naked eye.", "Space"],
+    ["Venus spins in the ____ direction to most planets.", "Opposite"]
+  ]},
+  desi: { name: "Desi Bluff", blurb: "Bengali & Hindi words, India oddities.", t: "fact", qs: [
+    ["In Bengali, what does it mean if you're feeling 'lyadh' (ল্যাদ)?", "Too lazy to do anything"],
+    ["What kind of person is 'hyangla' (হ্যাংলা) in Bengali?", "Someone greedy for food"],
+    ["What does the Bengali word 'nyaka' (ন্যাকা) describe?", "Someone acting fake-innocent"],
+    ["What does the Bengali word 'gyanjam' (গ্যাঞ্জাম) mean?", "A noisy mess or commotion"],
+    ["What does the Bengali word 'kelenkari' (কেলেঙ্কারি) mean?", "A scandal"],
+    ["In Kolkata, what does 'chaap nish na' (চাপ নিস না) mean?", "Don't stress"],
+    ["What does the Mumbai slang 'jhakaas' (झक्कास) mean?", "Awesome"],
+    ["What is a 'ghapla' (घपला) in Hindi?", "A scam"],
+    ["In Bombay slang, what does 'kalti maarna' mean?", "To slip away quietly"],
+    ["Before 'drama' it meant something else: 'nautanki' (नौटंकी) is originally a ____.", "Folk theatre form"],
+    ["In 1965, Howrah Bridge was officially renamed ____.", "Rabindra Setu"],
+    ["Howrah Bridge was built without a single ____.", "Nut or bolt"],
+    ["Kolkata's first trams, in 1873, were pulled by ____.", "Horses"],
+    ["The Bengali sweet 'ledikeni' is named after ____.", "Lady Canning"],
+    ["At Tangra's Chinese Kali temple in Kolkata, the prasad is ____.", "Noodles"],
+    ["The Great Banyan Tree in Howrah's botanic garden has no ____.", "Main trunk"],
+    ["At Magnetic Hill near Leh, cars appear to ____.", "Roll uphill"],
+    ["Houses in Shani Shingnapur, Maharashtra, famously have no ____.", "Doors"],
+    ["In Kongthong, Meghalaya, every villager has their own ____.", "Tune that works as their name"],
+    ["Lonar Lake in Maharashtra was created by ____.", "A meteorite"],
+    ["Roopkund in Uttarakhand is nicknamed '____ Lake'.", "Skeleton"],
+    ["The 'Fairy Queen', built in 1855, is famous as the world's oldest working ____.", "Steam locomotive"],
+    ["In Bengali, what is a 'dhandabaj' (ধান্দাবাজ)?", "A schemer always working an angle"],
+    ["In Bengali, what is a 'phankibaj' (ফাঁকিবাজ)?", "Someone who dodges work"],
+    ["In Bengali, what does it mean to give someone 'dhop' (ঢপ)?", "To tell them a lie"],
+    ["In Bengali, what is 'gul' (গুল) when someone is 'gul marchhe'?", "A tall tale"],
+    ["In Bengali, what is 'batela' (বাতেলা)?", "Big talk with nothing behind it"],
+    ["In Bengali, what is 'jyathami' (জ্যাঠামি)?", "Acting like a know-it-all elder"],
+    ["In Bengali slang, what is an 'aantel' (আঁতেল)?", "A pseudo-intellectual"],
+    ["In Bengali, what is a 'kipte' (কিপটে) person?", "A stingy person"],
+    ["In Bengali, what is a 'khyapa' (খ্যাপা) person?", "A crazy, eccentric person"],
+    ["In Bengali, what is a 'hujuge' (হুজুগে) person?", "Someone who jumps on every craze"],
+    ["In Bengali, what is a 'kunre' (কুঁড়ে) person?", "A lazy person"],
+    ["In Bengali, what is a 'haanda' (হাঁদা)?", "A fool"],
+    ["The 'Langra' mango's name literally means ____.", "Lame"],
+    ["In Bengal, 'Himsagar' is a famous variety of ____.", "Mango"],
+    ["In Bengali folklore, a 'gechho bhoot' is a ghost that ____.", "Lives in trees"],
+    ["In Bengali folklore, a 'mechho bhoot' is a ghost that loves ____.", "Fish"],
+    ["In Bengali folklore, a 'shakchunni' is the ghost of a ____.", "Married woman"],
+    ["In Bengali folklore, a 'brahmadaitya' is the ghost of a ____.", "Brahmin"],
+    ["In Bengali folklore, a 'petni' is the ghost of an ____.", "Unmarried woman"],
+    ["In Bengali folklore, the 'nishi' is a spirit that ____.", "Calls your name at night"],
+    ["At Durga Puja, the 'dhunuchi naach' is a dance with ____.", "A clay incense burner"],
+    ["On Bijoya Dashami, 'sindoor khela' is when married women ____.", "Smear vermilion on each other"],
+    ["'Jamai Shashthi' is a Bengali festival that honours ____.", "Sons-in-law"],
+    ["In Bengali sweets, 'nolen gur' is ____.", "Date palm jaggery"],
+    ["'Patishapta' is a Bengali ____.", "Crepe rolled around a sweet filling"],
+    ["In Kolkata, 'ghugni' is a curry made from ____.", "Dried yellow peas"],
+    ["'Kosha mangsho' is Bengali slow-cooked ____.", "Mutton"],
+    ["'Shukto' is the Bengali dish traditionally served ____.", "First in a meal"],
+    ["'Panta bhaat' is ____.", "Leftover rice soaked overnight in water"],
+    ["Kolkata's 'dimer devil' is a ____.", "Crumb-fried egg stuffed with mince"],
+    ["Nobin Chandra Das of Kolkata is credited with inventing the ____.", "Rosogolla"],
+    ["Kolkata is one of the last cities in the world with hand-pulled ____.", "Rickshaws"],
+    ["College Street in Kolkata is famous as a huge ____.", "Second-hand book market"],
+    ["The Indian Coffee House on College Street was earlier called ____.", "Albert Hall"],
+    ["Kolkata's Park Street was once called ____.", "Burial Ground Road"],
+    ["Eden Gardens is named after ____.", "Lord Auckland's sisters, the Edens"],
+    ["Kolkata's Writers' Building got its name from ____.", "The East India Company's junior clerks"],
+    ["Kolkata's Fort William is named after ____.", "King William III"],
+    ["In 1941, Netaji escaped house arrest disguised as ____.", "A Pathan insurance agent"],
+    ["Satyajit Ray received an honorary ____ in 1992.", "Oscar"],
+    ["In 2004, Rabindranath Tagore's Nobel medal was ____.", "Stolen"],
+    ["Besides India's, Tagore wrote the national anthem of ____.", "Bangladesh"],
+    ["At Lord's in 2002, Sourav Ganguly famously waved his ____.", "Shirt"],
+    ["When Mohun Bagan won the 1911 IFA Shield, most of their players were ____.", "Barefoot"],
+    ["The second Hooghly bridge is officially called ____.", "Vidyasagar Setu"],
+    ["Calcutta was officially renamed Kolkata in ____.", "2001"],
+    ["Kolkata's Victoria Memorial is built from marble from ____.", "Makrana"],
+    ["India's national aquatic animal is the ____.", "Ganges river dolphin"],
+    ["India's national heritage animal is the ____.", "Elephant"],
+    ["Chess began in India as a game called ____.", "Chaturanga"],
+    ["Snakes and ladders began in India as ____.", "Moksha Patam"],
+    ["Ludo comes from the Indian game ____.", "Pachisi"],
+    ["The English word 'shampoo' comes from a Hindi word meaning ____.", "To massage"],
+    ["The word 'pyjama' originally meant ____.", "Leg garment"],
+    ["The word 'bungalow' means a house in the style of ____.", "Bengal"],
+    ["The English word 'thug' comes from Hindi 'thag', meaning ____.", "Con man"],
+    ["The word 'juggernaut' comes from ____.", "Lord Jagannath's chariot"],
+    ["The English word 'cushy' comes from the Hindi word ____.", "Khush"],
+    ["The English word 'dinghy' comes from a Bengali/Hindi word for ____.", "Small boat"],
+    ["The English word 'bandana' comes from Hindi 'bandhna', meaning ____.", "To tie"],
+    ["Indian Railways' 'Lifeline Express' is a ____.", "Hospital on a train"],
+    ["Jantar Mantar in Jaipur has the world's largest stone ____.", "Sundial"],
+    ["Mawlynnong in Meghalaya is famous as Asia's ____ village.", "Cleanest"],
+    ["Meghalaya's living bridges are grown from ____.", "Rubber fig tree roots"],
+    ["Majuli in Assam is one of the world's largest ____.", "River islands"],
+    ["Chandigarh's Rock Garden is built almost entirely from ____.", "Waste and scrap"],
+    ["Manipur's Loktak Lake is famous for its floating ____.", "Islands"],
+    ["Kodinhi village in Kerala is famous for its unusual number of ____.", "Twins"],
+    ["In Shetpal, Maharashtra, many homes keep a resting place for ____.", "Cobras"],
+    ["At Jatinga in Assam, birds mysteriously ____ at night.", "Crash down from the sky"],
+    ["The world's tallest statue stands in ____.", "Gujarat"],
+    ["India's first full-length feature film was ____.", "Raja Harishchandra"],
+    ["India's first talkie film was ____.", "Alam Ara"],
+    ["Amitabh Bachchan was once rejected by All India Radio because of his ____.", "Voice"],
+    ["In Sholay, the role of Gabbar Singh was first offered to ____.", "Danny Denzongpa"],
+    ["Shah Rukh Khan's house Mannat was originally called ____.", "Villa Vienna"],
+    ["In Hindi slang, what does 'bindaas' (बिंदास) mean?", "Carefree"],
+    ["In Hindi slang, what does 'fokat' (फोकट) mean?", "Free of cost"],
+    ["In Hindi slang, what is a 'lafda' (लफड़ा)?", "A messy problem or quarrel"],
+    ["In Hindi slang, what does 'chindi' mean?", "Cheap and stingy"],
+    ["In Hindi slang, what is 'bakaiti' (बकैती)?", "Pointless chatter"],
+    ["In Hindi slang, if something has a 'jhol' (झोल), it has ____.", "Something fishy about it"],
+    ["In Hindi slang, what is a 'pakau' (पकाऊ) person?", "Someone boring who goes on and on"],
+    ["In Delhi slang, what does 'jhand' (झंड) mean?", "Embarrassing or lame"],
+    ["In Delhi slang, what is a 'chep'?", "A clingy, annoying person"],
+    ["In Hindi slang, what is 'bhasad' (भसड़)?", "Total chaos"],
+    ["In Hindi slang, if your 'kat gaya' (कट गया), what happened?", "You got cheated"],
+    ["In Hinglish, what does 'senti' mean?", "Overly emotional"],
+    ["In Bengali, what is a 'nyara' (ন্যাড়া) head?", "A shaved head"]
+  ]},
+  friends: { name: "Truth Comes Out", blurb: "Questions about the people playing.", t: "friend", qs: [
+    "What's {p}'s secret talent?",
+    "What will {p} be famous for in 10 years?",
+    "What's the first thing {p} does after waking up?",
+    "If {p} wrote an autobiography, what would it be called?",
+    "What does {p} order at a roadside stall at 1 a.m.?",
+    "What would {p} do with ₹1 crore on day one?",
+    "What's {p}'s most overused phrase?",
+    "Which movie character is {p} secretly?",
+    "What is {p} most likely to be late for?",
+    "What would {p}'s superhero name be?",
+    "What is {p} irrationally scared of?",
+    "What's {p}'s go-to excuse for cancelling plans?",
+    "What would {p} name a pet goat?",
+    "What food could {p} eat every single day?",
+    "What job would {p} be terrible at?",
+    "What's {p}'s guilty-pleasure song?",
+    "Which fictional world would {p} move into?",
+    "What did {p} want to be as a kid?",
+    "What's {p}'s dream holiday destination?",
+    "What topic can {p} argue about for hours?",
+    "What's the most {p} thing to say in a WhatsApp group?",
+    "What would {p} grab first if the house was on fire?",
+    "What is {p}'s most-used emoji?",
+    "What would {p} order at a fancy restaurant to look sophisticated?",
+    "What's {p}'s biggest pet peeve?",
+    "What would {p} be arrested for?",
+    "What's the worst gift {p} has ever given?",
+    "What would {p} do on a completely free Sunday?",
+    "What is {p} secretly proud of?",
+    "What app does {p} spend way too much time on?",
+    "What's {p}'s signature dance move?",
+    "What would {p}'s reality show be called?",
+    "What would {p} cook to impress a date?",
+    "What's the first thing {p} notices about people?",
+    "What would {p} name their first child?",
+    "What does {p} always forget?",
+    "What would {p} do if they won a free trip anywhere?",
+    "What's {p}'s karaoke song?",
+    "What would {p} spend their last ₹500 on?",
+    "What's {p}'s hidden addiction?",
+    "What does {p} do when they can't sleep?",
+    "What's the most {p} thing ever to happen?",
+    "What would {p} bring to a desert island?",
+    "What would {p}'s warning label say?",
+    "Which celebrity does {p} think they look like?",
+    "What does {p} say when they're angry?",
+    "What's {p}'s comfort food after a bad day?",
+    "What would {p} do if they were Prime Minister for a day?",
+    "What's {p}'s worst habit?",
+    "What would {p}'s autobiography be titled?",
+    "What's {p}'s idea of a perfect Saturday night?",
+    "What would {p} be doing at 3 a.m.?",
+    "What sport would {p} be terrible at?",
+    "What would {p} do with a time machine?",
+    "What would {p}'s villain origin story be?",
+    "What's {p}'s favourite way to waste time?",
+    "What would {p} never be caught dead wearing?",
+    "What would {p} name their boat?",
+    "What is {p} most likely to cry about?",
+    "What would {p}'s Tinder bio say?",
+    "What does {p} Google most often?",
+    "What would {p} do if they found ₹10 lakh on the road?",
+    "What is {p}'s most controversial food opinion?",
+    "What would {p} buy first if they became a millionaire?",
+    "What's {p}'s spirit animal?",
+    "Which decade should {p} have been born in?",
+    "What would {p} rename themselves?",
+    "What would {p}'s catchphrase be on a TV show?",
+    "What is {p} the reigning champion of?",
+    "What's {p}'s go-to party trick?",
+    "What's the strangest thing {p} has eaten?",
+    "Which cartoon character is most like {p}?",
+    "What's {p}'s unpopular opinion?",
+    "What would {p} be famous for in the year 2050?",
+    "What would {p}'s restaurant be called?",
+    "What's {p}'s favourite word right now?",
+    "What would make {p} leave a party early?",
+    "What would {p} do if they were invisible for a day?",
+    "What would be {p}'s last meal?",
+    "What is {p} irrationally competitive about?",
+    "What's {p}'s secret skill nobody asks about?",
+    "What would {p} write on their tombstone?",
+    "What would {p} do with a free day off work tomorrow?",
+    "What would {p} name a new cricket team?",
+    "What's {p}'s biggest fear at a wedding?",
+    "What would {p}'s wedding entry song be?",
+    "What does {p} do first when they get home?",
+    "Who would play {p} in a movie about their life?",
+    "What would {p}'s YouTube channel be about?",
+    "What subject was {p} worst at in school?",
+    "What would {p} do if the internet went down for a week?",
+    "What's {p}'s weirdest childhood memory?",
+    "What is {p}'s ultimate road-trip snack?",
+    "What would {p} sell on a street corner?",
+    "What's {p}'s most dramatic overreaction ever?",
+    "What would {p} put on a pizza?",
+    "What would {p} name their band?",
+    "What's {p}'s favourite thing to complain about?",
+    "What does {p} pretend to like?",
+    "What would {p} do as a ghost?",
+    "What would {p}'s superpower be?",
+    "What would {p} be the world's best at?",
+    "What would {p} do on a solo trip to Goa?",
+    "What would {p} do if they got stuck in a lift?",
+    "What would {p} say in a 10-second speech to the nation?",
+    "What's {p}'s favourite household chore?",
+    "What would {p} be doing right now if they weren't here?",
+    "What would {p}'s dream job be if money didn't matter?",
+    "What would {p} bring to a potluck?",
+    "What does {p}'s mum scold them about most?",
+    "What does {p} always overpack?",
+    "What's {p}'s go-to WhatsApp reply when they're not listening?",
+    "What is {p} still embarrassed about from school?",
+    "What would {p} do if they met their younger self?",
+    "What would {p} do on a first date?",
+    "What's {p}'s pet name for their phone?",
+    "What would {p} rather do than go to the gym?",
+    "What's the longest {p} has gone without their phone?",
+    "Which song would {p} play on repeat for a whole day?",
+    "What would {p} do at the Durga Puja pandal?",
+    "Which pandal-hopping snack would {p} never skip?",
+    "What would {p} order at Arsalan?",
+    "What's {p}'s go-to Bengali film?",
+    "What would {p} do if they were stuck in Kolkata traffic for 5 hours?",
+    "What would {p}'s Bollywood character be called?",
+    "Which Bollywood dialogue does {p} quote the most?",
+    "What's {p}'s favourite cricket memory?",
+    "What's {p}'s most used excuse at work?",
+    "What would {p} name a new mishti?",
+    "What would {p} do with an extra hour every day?",
+    "What would {p} trade their phone for?",
+    "What's {p}'s pettiest grudge?",
+    "What would {p}'s horoscope say today?",
+    "What would {p} do as head of a company for one day?",
+    "What would {p} never share, not even with their best friend?",
+    "What's {p}'s favourite smell?",
+    "What would {p} do if they could speak to animals?",
+    "What app would {p} invent?",
+    "What's {p}'s favourite season, and why?",
+    "What would {p} put in a time capsule?",
+    "What's {p}'s best quality that they never show?",
+    "What's {p}'s idea of a perfect holiday?",
+    "What would {p} do with a pet elephant?",
+    "What's {p}'s favourite thing about this group?",
+    "What would {p} title this group's movie?",
+    "What role does {p} play in this friend group?",
+    "What's {p}'s go-to topic when conversation dies?",
+    "What would {p} shout if they won the lottery?",
+    "What would {p} do as a teacher for a day?",
+    "What would {p} do on a reality dating show?",
+    "What would {p}'s robot butler be named?",
+    "What does {p} do that nobody else understands?",
+    "What's {p}'s strangest fear?",
+    "What's {p}'s favourite cheat meal?",
+    "What would {p}'s secret password be?",
+    "What's {p}'s idea of a great birthday party?",
+    "What would {p} buy at a midnight online sale?",
+    "What would {p} do at a silent retreat?",
+    "What's {p}'s most-watched movie?",
+    "What's {p}'s favourite type of chai?",
+    "What would {p} do if they swapped lives with their boss?",
+    "What would {p}'s Instagram caption be right now?",
+    "What's {p}'s idea of being adventurous?",
+    "What's the one thing {p} can't live without?",
+    "What would {p} rename this city?",
+    "What would {p} say to their 80-year-old self?",
+    "What would {p} do with a free ticket to space?",
+    "What would {p} do if they had to live without electricity for a month?",
+    "What's {p}'s most-repeated story at parties?",
+    "What would {p} name a pet crow?"
+  ]}
+};
+const PACK_ORDER = ["word","facts","desi","friends"];
+
+/* ---------------- Utilities ---------------- */
+const $ = s => document.querySelector(s);
+function el(tag, props, ...kids){
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(props||{})){
+    if (v==null || v===false) continue;
+    if (k==="class") e.className = v;
+    else if (k==="text") e.textContent = v;
+    else if (k.startsWith("on") && typeof v==="function") e.addEventListener(k.slice(2), v);
+    else if (k==="value") e.value = v;
+    else if (k==="checked") e.checked = !!v;
+    else e.setAttribute(k, v===true ? "" : v);
+  }
+  for (const c of kids.flat()){ if (c==null || c===false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+function load(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k, v){ try{ if (v==null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function shuffle(a){ a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function norm(s){ return String(s||"").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/^(the|a|an)\s+/,"").replace(/[^\p{L}\p{N}]+/gu,"").trim(); }
+function tooClose(a,b){ const x=norm(a), y=norm(b); if(!x||!y) return false; if (x===y) return true; return (x.length>=5 && y.includes(x)) || (y.length>=5 && x.includes(y)); }
+function rid(n=6){ const c="abcdefghjkmnpqrstuvwxyz23456789"; let s=""; for(let i=0;i<n;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; }
+function randCode(){ const c="ABCDEFGHJKLMNPQRSTUVWXYZ"; let s=""; for(let i=0;i<4;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; }
+let toastT; function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, 3500); }
+const COLORS = ["#C8255F","#0B7F70","#3B5BDB","#B35C00","#7A3EB1","#2F7D32","#C2410C","#0E7490","#9D174D","#4D7C0F"];
+function colorFor(id){ let h=0; for (const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return COLORS[h%COLORS.length]; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------------- State ---------------- */
+const PREFIX = "psych-adda-v1-";
+const PID = load("bn_pid", null) || (() => { const p = "p" + rid(12); save("bn_pid", p); return p; })();
+const ME = { id: PID, nick: load("bn_nick","") };
+const S = { code:null, game:null, players:{}, key:null, upd:null };
+const NET = { peer:null, role:null, conns:{}, conn:null, offset:0, retryT:null, joinT:null, status:null };
+let SET = Object.assign({ rounds:7, ansSec:60, voteSec:30, packs:{word:true,facts:true,desi:true,friends:true} }, load("bn_settings", {}));
+let CUSTOM = load("bn_custom", "");
+let busy = false, lastStamp = null;
+const URLROOM = (new URLSearchParams(location.search).get("room") || "").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
+
+const G = () => S.game;
+const isHost = () => NET.role === "host";
+const akey = g => "k" + (g.run||0) + "r" + g.round;
+const now = () => Date.now() + (NET.role === "client" ? NET.offset : 0);
+const present = () => Object.keys(S.players).filter(id => S.players[id].online !== false);
+function nameOf(id){ const p = S.players[id]; if (p && p.nick) return p.nick; const g=G(); return (g && g.names && g.names[id]) || "Player"; }
+function pChip(id, extra){
+  const off = S.players[id] && S.players[id].online === false;
+  const cls = "pchip" + (extra && extra.cls ? " " + extra.cls : "") + (off ? " wait" : "");
+  const tag = off ? "offline" : (extra && extra.tag);
+  return el("span", {class:cls}, el("span",{class:"dot", style:"background:"+colorFor(id)}), el("span",{class:"nm", text:nameOf(id) + (id===ME.id?" (you)":"")}), tag ? el("span",{class:"tag", text:tag}) : null, extra && extra.btn || null);
+}
+function setNet(msg){ NET.status = msg; const b = $("#netbar"); if (!b) return; b.textContent = msg || ""; b.hidden = !msg; }
+
+/* ---------------- Networking: host ---------------- */
+function openHostPeer(code){
+  return new Promise((resolve, reject) => {
+    const peer = new Peer(PREFIX + code.toLowerCase());
+    let opened = false;
+    peer.on("open", () => { opened = true; resolve(peer); });
+    peer.on("error", e => {
+      if (!opened){ try{ peer.destroy(); }catch(_){} reject(e); return; }
+      if (e.type === "network" || e.type === "server-error" || e.type === "socket-error" || e.type === "socket-closed") setNet("Connection to the matchmaking server dropped. Retrying…");
+    });
+    peer.on("disconnected", () => { setTimeout(() => { try{ if (!peer.destroyed && peer.disconnected) peer.reconnect(); }catch(_){} }, 2000); });
+    peer.on("open", () => setNet(null));
+    peer.on("connection", conn => {
+      conn.on("data", d => hostHandle(conn, d));
+      conn.on("close", () => hostDrop(conn));
+      conn.on("error", () => hostDrop(conn));
+    });
+  });
+}
+function hostHandle(conn, d){
+  if (!d || typeof d !== "object") return;
+  if (d.t === "hello"){
+    const pid = String(d.pid||"").slice(0,40); if (!pid) return;
+    conn.pid = pid;
+    const old = NET.conns[pid]; if (old && old !== conn){ try{ old.close(); }catch(_){} }
+    NET.conns[pid] = conn;
+    const nick = String(d.nick||"Player").trim().slice(0,16) || "Player";
+    const p = S.players[pid];
+    S.players = {...S.players, [pid]: p ? {...p, nick, online:true} : {nick, joinedAt:Date.now(), online:true, answers:{}, votes:{}}};
+    S.game = {...S.game, names:{...(S.game.names||{}), [pid]:nick}};
+    commit(); return;
+  }
+  const pid = conn.pid; if (!pid || !S.players[pid]) return;
+  if (d.t === "answer") applyAnswer(pid, d.k, d.v);
+  else if (d.t === "vote") applyVote(pid, d.k, d.o);
+  else if (d.t === "leave") removePlayer(pid, false);
+}
+function hostDrop(conn){
+  const pid = conn.pid;
+  if (pid && NET.conns[pid] === conn){
+    delete NET.conns[pid];
+    if (S.players[pid]){ S.players = {...S.players, [pid]: {...S.players[pid], online:false}}; commit(); }
+  }
+}
+function applyAnswer(pid, k, v){
+  const g = G(); if (!g || g.phase !== "answer" || k !== akey(g)) return;
+  v = String(v||"").trim().replace(/\s+/g," ").slice(0,80); if (!v) return;
+  const p = S.players[pid]; if (!p || (p.answers && p.answers[k])) return;
+  if (g.cur.t === "fact" && tooClose(v, g.cur.answer)) return;
+  S.players = {...S.players, [pid]: {...p, answers:{...(p.answers||{}), [k]:v}}};
+  commit();
+}
+function applyVote(pid, k, o){
+  const g = G(); if (!g || g.phase !== "vote" || k !== akey(g) || pid === g.cur.subjectId) return;
+  const opt = (g.options||[]).find(x => x.id === o); if (!opt || opt.authors.includes(pid)) return;
+  const p = S.players[pid]; if (!p || (p.votes && p.votes[k])) return;
+  S.players = {...S.players, [pid]: {...p, votes:{...(p.votes||{}), [k]:o}}};
+  commit();
+}
+function removePlayer(pid, notify){
+  const rest = {...S.players}; delete rest[pid]; S.players = rest;
+  const c = NET.conns[pid];
+  if (c){ if (notify){ try{ c.send({t:"kicked"}); }catch(_){} } setTimeout(() => { try{ c.close(); }catch(_){} }, 400); delete NET.conns[pid]; }
+  commit();
+}
+function commit(){
+  save("bn_hosting", {code:S.code, game:S.game, players:S.players, at:Date.now()});
+  const msg = {t:"state", game:S.game, players:S.players, hostNow:Date.now()};
+  for (const c of Object.values(NET.conns)){ try{ if (c.open) c.send(msg); }catch(_){} }
+  render();
+}
+async function doHost(resume){
+  if (busy) return;
+  if (!resume && needNick()) return;
+  busy = true; cleanupNet();
+  const err = $("#home-err");
+  try{
+    let peer = null, code = resume ? resume.code : null;
+    for (let i = 0; i < (resume ? 10 : 6) && !peer; i++){
+      if (!resume) code = randCode();
+      if (err) err.textContent = resume ? "Reopening room " + code + "…" : "Creating a room…";
+      try{ peer = await openHostPeer(code); }
+      catch(e){
+        if (e.type === "unavailable-id"){ if (resume) await sleep(4000); continue; }
+        throw e;
+      }
+    }
+    if (!peer) throw {type: resume ? "still-taken" : "no-code"};
+    NET.peer = peer; NET.role = "host"; S.code = code;
+    if (resume){
+      S.game = resume.game;
+      const ps = {}; for (const [id,p] of Object.entries(resume.players)) ps[id] = {...p, online: id === PID};
+      S.players = ps;
+    } else {
+      S.game = freshGame(code);
+      S.players = {[PID]: {nick:ME.nick, joinedAt:Date.now(), online:true, answers:{}, votes:{}}};
+    }
+    save("bn_last", null);
+    keepAwake();
+    commit();
+  }catch(e){
+    const msg = e && e.type === "still-taken" ? "The room is still closing on the server. Wait 30 seconds and try again."
+      : e && (e.type === "network" || e.type === "server-error" || e.type === "socket-error") ? "Couldn't reach the matchmaking server. Check your internet and try again."
+      : e && e.type === "browser-incompatible" ? "This browser can't run the game. Try Chrome or Safari."
+      : "Couldn't create a room. Try again.";
+    if (err) err.textContent = msg; else toast(msg);
+    cleanupNet();
+  }
+  busy = false;
+}
+
+/* ---------------- Networking: client ---------------- */
+function doJoin(raw, auto){
+  if (!auto && needNick()) return;
+  const code = String(raw||"").toUpperCase().replace(/[^A-Z]/g,"");
+  const err = $("#home-err");
+  if (code.length !== 4){ if (err) err.textContent = "Room codes are 4 letters."; return; }
+  cleanupNet();
+  NET.role = "client"; S.code = code; save("bn_last", code);
+  if (err) err.textContent = "Looking for room " + code + "…";
+  const peer = new Peer(); NET.peer = peer;
+  peer.on("open", () => connectHost());
+  peer.on("error", e => {
+    if (NET.peer !== peer) return;
+    if (e.type === "peer-unavailable"){
+      if (!S.game) failJoin("No open room called " + code + ". Check the code, and make sure the host still has the game open.");
+      else { setNet("Can't reach the host. Retrying…"); scheduleReconnect(); }
+    } else if (e.type === "browser-incompatible"){ failJoin("This browser can't run the game. Try Chrome or Safari."); }
+    else { setNet("Connection problem. Retrying…"); scheduleReconnect(); }
+  });
+  peer.on("disconnected", () => { setTimeout(() => { try{ if (NET.peer === peer && !peer.destroyed && peer.disconnected) peer.reconnect(); }catch(_){} }, 2000); });
+  clearTimeout(NET.joinT);
+  NET.joinT = setTimeout(() => { if (NET.role === "client" && !S.game) failJoin("Couldn't connect to room " + code + ". Check your internet and try again."); }, 20000);
+}
+function connectHost(){
+  if (NET.role !== "client" || !NET.peer || NET.peer.destroyed) return;
+  try{ NET.conn && NET.conn.close(); }catch(_){}
+  const conn = NET.peer.connect(PREFIX + S.code.toLowerCase(), {reliable:true});
+  NET.conn = conn;
+  conn.on("open", () => { conn.send({t:"hello", pid:PID, nick:ME.nick || "Player"}); setNet(null); });
+  conn.on("data", d => { if (NET.conn === conn) clientHandle(d); });
+  conn.on("close", () => { if (NET.conn === conn && NET.role === "client"){ setNet("Lost connection to the host. Reconnecting…"); scheduleReconnect(); } });
+  conn.on("error", () => { if (NET.conn === conn){ setNet("Lost connection to the host. Reconnecting…"); scheduleReconnect(); } });
+}
+function scheduleReconnect(){
+  if (NET.role !== "client" || NET.retryT) return;
+  NET.retryT = setTimeout(() => {
+    NET.retryT = null;
+    if (NET.role !== "client" || !NET.peer || NET.peer.destroyed) return;
+    if (NET.peer.disconnected){ try{ NET.peer.reconnect(); }catch(_){} setTimeout(connectHost, 1500); }
+    else connectHost();
+  }, 3000);
+}
+function clientHandle(d){
+  if (!d || typeof d !== "object") return;
+  if (d.t === "state"){
+    NET.offset = (d.hostNow || Date.now()) - Date.now();
+    clearTimeout(NET.joinT);
+    const first = !S.game;
+    S.game = d.game; S.players = d.players || {};
+    if (first) keepAwake();
+    render();
+  } else if (d.t === "kicked"){ goHome(); toast("The host removed you from the game."); }
+  else if (d.t === "closed"){ goHome(); toast("The host closed the room."); }
+}
+function send(msg){
+  if (NET.role === "host"){
+    if (msg.t === "answer") applyAnswer(PID, msg.k, msg.v);
+    else if (msg.t === "vote") applyVote(PID, msg.k, msg.o);
+    return true;
+  }
+  if (NET.conn && NET.conn.open){ try{ NET.conn.send(msg); return true; }catch(_){} }
+  return false;
+}
+function failJoin(msg){ goHome(); const e = $("#home-err"); if (e) e.textContent = msg; else toast(msg); }
+function cleanupNet(){
+  clearTimeout(NET.retryT); clearTimeout(NET.joinT); NET.retryT = NET.joinT = null;
+  try{ NET.conn && NET.conn.close(); }catch(_){}
+  try{ NET.peer && NET.peer.destroy(); }catch(_){}
+  NET.peer = null; NET.conn = null; NET.conns = {}; NET.role = null; NET.offset = 0;
+  setNet(null);
+}
+function goHome(){ cleanupNet(); S.code = null; S.game = null; S.players = {}; save("bn_last", null); render(true); }
+
+let wakeLock = null;
+async function keepAwake(){ try{ if ("wakeLock" in navigator && !wakeLock){ wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } }catch(_){} }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (S.code) keepAwake();
+  if (NET.role === "client" && NET.conn && !NET.conn.open) scheduleReconnect();
+  if (NET.role === "host" && NET.peer && NET.peer.disconnected){ try{ NET.peer.reconnect(); }catch(_){} }
+});
+
+/* ---------------- Boot ---------------- */
+function boot(){
+  $("#home-link").onclick = () => { if (!S.code) render(true); };
+  if (typeof Peer === "undefined"){ render(true); return; }
+  const last = load("bn_last", null);
+  if (last && !URLROOM && ME.nick){ doJoin(last, true); }
+  render(true);
+}
+
+/* ---------------- Rendering ---------------- */
+function screenKey(){
+  if (!S.code || !G()) return "home:" + (NET.role||"") + (S.code||"");
+  const g = G(), k = akey(g), me = S.players[ME.id] || {};
+  if (!S.players[ME.id]) return "joining";
+  switch (g.phase){
+    case "lobby": return "lobby:" + (g.run||0) + ":" + isHost();
+    case "answer": return "ans:" + k + ":" + !!(me.answers && me.answers[k]);
+    case "vote": return "vote:" + k + ":" + !!(me.votes && me.votes[k]);
+    case "reveal": return "rev:" + k;
+    case "final": return "final:" + (g.run||0);
+  }
+  return "x";
+}
+function render(force){
+  const key = screenKey();
+  if (force || key !== S.key){
+    S.key = key;
+    const scr = buildScreen();
+    $("#main").replaceChildren(scr.node);
+    S.upd = scr.upd || null;
+    window.scrollTo({top:0});
+  }
+  S.upd && S.upd();
+  tick();
+}
+function buildScreen(){
+  if (!S.code || !G()) return scrHome();
+  if (!S.players[ME.id]) return { node: el("div",{class:"banner", text:"Joining the room…"}) };
+  const ph = G().phase;
+  if (ph === "lobby") return scrLobby();
+  if (ph === "answer") return scrAnswer();
+  if (ph === "vote") return scrVote();
+  if (ph === "reveal") return scrReveal();
+  return scrFinal();
+}
+
+/* ---------- Home ---------- */
+function rulesCard(){
+  return el("details", {class:"card flat"},
+    el("summary", {text:"How to play"}),
+    el("ol", {class:"rules small", style:"margin-top:10px"},
+      el("li", {}, "One person hosts on their phone or laptop and keeps that screen open. Everyone else joins with the room code."),
+      el("li", {}, "Everyone sees a weird question. Write a fake answer that sounds real."),
+      el("li", {}, "All the fakes are mixed with the real answer. Vote for the one you think is true."),
+      el("li", {}, "Pick the truth: ", el("b",{text:"+2"}), ". Each friend who falls for your lie: ", el("b",{text:"+1"}), "."),
+      el("li", {}, "In ", el("strong",{text:"Truth Comes Out"}), " rounds the question is about a player. They write the real answer and get ", el("b",{text:"+1"}), " for every friend who spots it."),
+      el("li", {}, "If your fake matches the real answer you'll be asked to try again, so no free points.")
+    ));
+}
+function heroCard(){
+  return el("section",{class:"hero"},
+    el("h2",{text:"Make up answers. Catch your friends lying."}),
+    el("p",{class:"muted", text:"A bluffing party game for friends. Everyone plays on their own phone. No sign-up, no app to install."}));
+}
+function scrHome(){
+  if (typeof Peer === "undefined"){
+    return { node: el("div",{class:"stack"}, heroCard(), el("div",{class:"banner warn", text:"The game engine didn't load. Check your internet connection and reload the page."})) };
+  }
+  const nick = el("input",{id:"nick", class:"inp", maxlength:"16", placeholder:"e.g. Arnob", value:ME.nick, autocomplete:"off"});
+  nick.oninput = () => { ME.nick = nick.value.trim(); save("bn_nick", ME.nick); };
+  const err = el("div",{class:"err", id:"home-err"});
+  const code = el("input",{id:"joincode", class:"inp code", maxlength:"4", placeholder:"ABCD", autocomplete:"off", autocapitalize:"characters", "aria-label":"Room code", value:URLROOM});
+  code.oninput = () => { code.value = code.value.toUpperCase().replace(/[^A-Z]/g,""); };
+  code.onkeydown = e => { if (e.key==="Enter") doJoin(code.value); };
+  const joinBtn = el("button",{class:"btn" + (URLROOM ? "" : " alt"), type:"button", onclick:()=>doJoin(code.value)}, "Join");
+  const hostBtn = el("button",{class:"btn block" + (URLROOM ? " alt" : ""), type:"button", onclick:()=>doHost()}, "Host a new game");
+  const joinBox = el("div",{}, el("label",{class:"label", for:"joincode", text: URLROOM ? "You've been invited to room " + URLROOM : "Or join with a room code"}),
+    el("div",{class:"row"}, el("div",{class:"grow"}, code), joinBtn));
+  const saved = load("bn_hosting", null);
+  const resume = saved && saved.game && (Date.now() - (saved.at||0)) < 6*3600e3 && saved.game.phase !== "final"
+    ? el("div",{class:"banner"}, "You were hosting room ", el("strong",{text:saved.code}), ". ",
+        el("button",{class:"ghost", type:"button", onclick:()=>doHost(saved)}, "Reopen it"), " ",
+        el("button",{class:"ghost", type:"button", onclick:()=>{ save("bn_hosting", null); render(true); }}, "Forget it"))
+    : null;
+  const node = el("div",{class:"stack"},
+    heroCard(), resume,
+    el("div",{class:"card stack"},
+      el("div",{}, el("label",{class:"label", for:"nick", text:"Your name in the game"}), nick),
+      URLROOM ? joinBox : hostBtn,
+      URLROOM ? hostBtn : joinBox,
+      err),
+    rulesCard());
+  if (URLROOM && ME.nick) setTimeout(() => { try{ joinBtn.focus(); }catch(_){} }, 50);
+  return { node };
+}
+function needNick(){
+  if (!ME.nick){ const e=$("#home-err"); if (e) e.textContent = "Enter your name first."; $("#nick") && $("#nick").focus(); return true; }
+  return false;
+}
+function freshGame(code){
+  return { code, hostId:PID, phase:"lobby", createdAt:Date.now(), run:Date.now()%100000, round:-1,
+    settings:{rounds:SET.rounds, ansSec:SET.ansSec, voteSec:SET.voteSec}, questions:[], cur:null, options:null,
+    reveal:null, scores:{}, stats:{}, names:{[PID]:ME.nick}, subjects:[], phaseEndsAt:0 };
+}
+
+/* ---------- Lobby ---------- */
+function inviteLink(){ return location.origin + location.pathname + "?room=" + S.code; }
+function scrLobby(){
+  const g = G(), host = isHost();
+  const plist = el("div",{class:"players", id:"plist"});
+  const start = el("button",{class:"btn block", type:"button", onclick:()=>startGame()}, "Start game");
+  const link = inviteLink();
+  const wa = "https://wa.me/?text=" + encodeURIComponent("Join my Psych game! Room " + S.code + ": " + link);
+  const parts = [
+    el("div",{class:"card"},
+      el("div",{class:"eyebrow", text:"Room code"}),
+      el("div",{class:"code-big", text:S.code}),
+      el("div",{class:"sharerow"},
+        el("button",{class:"btn alt", type:"button", onclick:()=>copyText(link, "Invite link copied")}, "Copy invite link"),
+        el("a",{class:"btn alt", href:wa, target:"_blank", rel:"noopener"}, "Share on WhatsApp")),
+      el("p",{class:"small muted", style:"margin:10px 0 0", text:"Friends open the link, or open this page and type the code."})),
+    el("div",{class:"card stack"}, el("div",{class:"row", style:"justify-content:space-between"}, el("div",{class:"eyebrow", text:"Players"}), el("span",{class:"small muted", id:"pcount"})), plist)
+  ];
+  if (host){
+    parts.push(el("div",{class:"banner small", text:"The game runs on this device. Keep this screen open and unlocked until the game ends."}));
+    parts.push(settingsCard());
+    parts.push(el("div",{class:"stack"}, start, el("div",{class:"err", id:"start-err"})));
+  } else {
+    parts.push(el("div",{class:"banner", id:"waitmsg"}));
+  }
+  parts.push(el("div",{class:"row", style:"justify-content:center"}, leaveButton()));
+  return { node: el("div",{class:"stack"}, ...parts), upd(){
+    const ids = Object.keys(S.players).sort((a,b)=>(S.players[a].joinedAt||0)-(S.players[b].joinedAt||0));
+    const on = present().length;
+    $("#pcount").textContent = on + (on===1 ? " player" : " players");
+    plist.replaceChildren(...ids.map(id => pChip(id, {
+      tag: id===g.hostId ? "host" : null,
+      btn: host && id!==ME.id ? el("button",{class:"chip-btn", type:"button", "aria-label":"Remove "+nameOf(id), onclick:()=>removePlayer(id, true)}, "✕") : null })));
+    if (host){ start.disabled = on < 2; start.textContent = on < 2 ? "Waiting for at least 2 players" : "Start game with " + on + " players"; }
+    else { const w=$("#waitmsg"); if (w) w.textContent = "Waiting for " + nameOf(g.hostId) + " to start the game…"; }
+  }};
+}
+function leaveButton(){
+  const b = el("button",{class:"ghost", type:"button"}, isHost() ? "Close room" : "Leave room");
+  let armed = false;
+  b.onclick = () => {
+    if (!armed){ armed = true; b.textContent = isHost() ? "Tap again to close the room for everyone" : "Tap again to leave"; b.classList.add("confirm"); setTimeout(() => { armed = false; b.textContent = isHost() ? "Close room" : "Leave room"; b.classList.remove("confirm"); }, 4000); return; }
+    leaveGame();
+  };
+  return b;
+}
+function settingsCard(){
+  const persist = () => save("bn_settings", SET);
+  const packs = el("div",{class:"packgrid"}, ...PACK_ORDER.map(k => {
+    const cb = el("input",{type:"checkbox", id:"pk-"+k, checked:!!SET.packs[k]});
+    cb.onchange = () => { SET.packs[k] = cb.checked; persist(); };
+    return el("label",{class:"pack-t", for:"pk-"+k}, cb, el("div",{}, el("b",{text:PACKS[k].name}), el("span",{text:PACKS[k].blurb})));
+  }));
+  const custom = el("textarea",{id:"custom", class:"inp", placeholder:"Question | Real answer\nWhat was Arnob's first bike? | A red Hero Ranger", value:CUSTOM});
+  custom.oninput = () => { CUSTOM = custom.value; save("bn_custom", CUSTOM); };
+  return el("div",{class:"card stack"},
+    el("div",{class:"eyebrow", text:"Game setup"}),
+    el("div",{}, el("span",{class:"label", text:"Rounds"}), seg([[5,"5"],[7,"7"],[10,"10"],[15,"15"]], SET.rounds, v=>{SET.rounds=v; persist();})),
+    el("div",{}, el("span",{class:"label", text:"Time to write a fake"}), seg([[45,"45s"],[60,"60s"],[90,"90s"]], SET.ansSec, v=>{SET.ansSec=v; persist();})),
+    el("div",{}, el("span",{class:"label", text:"Time to vote"}), seg([[20,"20s"],[30,"30s"],[45,"45s"]], SET.voteSec, v=>{SET.voteSec=v; persist();})),
+    el("div",{}, el("span",{class:"label", text:"Question packs"}), packs),
+    el("details",{}, el("summary",{text:"Add your own questions"}),
+      el("p",{class:"small muted", text:"One per line: the question, a | sign, then the real answer. Your questions are used first."}), custom));
+}
+function seg(opts, cur, onPick){
+  const w = el("div",{class:"seg"});
+  for (const [v,label] of opts){
+    const b = el("button",{class:"segb"+(v===cur?" on":""), type:"button", "aria-pressed":String(v===cur)}, label);
+    b.onclick = () => { w.querySelectorAll(".segb").forEach(x=>{x.classList.remove("on"); x.setAttribute("aria-pressed","false");}); b.classList.add("on"); b.setAttribute("aria-pressed","true"); onPick(v); };
+    w.append(b);
+  }
+  return w;
+}
+function copyText(t, ok){
+  const fallback = () => toast(t);
+  try{ navigator.clipboard.writeText(t).then(()=>toast(ok || "Copied"), fallback); }catch(e){ fallback(); }
+}
+function leaveGame(){
+  if (isHost()){
+    for (const c of Object.values(NET.conns)){ try{ c.send({t:"closed"}); }catch(_){} }
+    save("bn_hosting", null);
+    setTimeout(goHome, 300);
+  } else {
+    send({t:"leave"});
+    setTimeout(goHome, 200);
+  }
+}
+
+/* ---------------- Game flow (host) ---------------- */
+function buildQuestions(n, playerCount){
+  const used = new Set(load("bn_used", []));
+  const fresh = (arr, f) => { const a = shuffle(arr); return a.filter(x=>!used.has(f(x))).concat(a.filter(x=>used.has(f(x)))); };
+  const custom = CUSTOM.split("\n").map(l=>l.split("|")).filter(p=>p.length>=2 && p[0].trim() && p[1].trim()).map(p=>({t:"fact", text:p[0].trim().slice(0,200), answer:p.slice(1).join("|").trim().slice(0,80), pack:"Custom"}));
+  let pool = [];
+  for (const k of ["word","facts","desi"]) if (SET.packs[k]) pool.push(...PACKS[k].qs.map(([q,a])=>({t:"fact", text:q, answer:a, pack:PACKS[k].name})));
+  pool = fresh(pool, x=>x.text);
+  const facts = shuffle(custom).concat(pool);
+  const friends = SET.packs.friends ? fresh(PACKS.friends.qs, x=>x).map(tpl=>({t:"friend", tpl, pack:PACKS.friends.name})) : [];
+  let nf = friends.length ? (facts.length ? Math.max(1, Math.round(n/3)) : n) : 0;
+  if (playerCount < 3 && facts.length) nf = Math.min(nf, 1);
+  nf = Math.min(nf, friends.length);
+  const nfact = Math.min(n - nf, facts.length);
+  if (nfact + nf < n) nf = Math.min(friends.length, n - nfact);
+  const chosen = shuffle(facts.slice(0, nfact).concat(friends.slice(0, nf)));
+  save("bn_used", Array.from(used).concat(chosen.map(q=>q.text||q.tpl)).slice(-2000));
+  return chosen;
+}
+function namesMap(g){ const m = Object.assign({}, g.names||{}); for (const id of Object.keys(S.players)) m[id] = S.players[id].nick || m[id] || "Player"; return m; }
+function roundState(g, i){
+  const q = g.questions[i];
+  const cur = {i, t:q.t, pack:q.pack, text:q.text||"", answer:q.answer||null, subjectId:null};
+  if (q.t === "friend"){
+    const ids = present();
+    const counts = {}; for (const r of g.questions.slice(0,i)) if (r.subjectId) counts[r.subjectId]=(counts[r.subjectId]||0)+1;
+    const order = (g.subjects||[]).filter(id=>ids.includes(id)).concat(shuffle(ids.filter(id=>!(g.subjects||[]).includes(id))));
+    const subj = order.slice().sort((a,b)=>(counts[a]||0)-(counts[b]||0))[0] || ids[0];
+    cur.subjectId = subj;
+    cur.text = q.tpl.split("{p}").join(nameOf(subj));
+  }
+  return {round:i, phase:"answer", phaseEndsAt:Date.now() + (g.settings.ansSec||60)*1000, cur, options:null, reveal:null};
+}
+function withSubject(questions, i, cur){ return questions.map((q,j) => j===i && cur.subjectId ? {...q, subjectId:cur.subjectId} : q); }
+function startGame(){
+  const g = G(), ids = present();
+  const errEl = $("#start-err");
+  if (ids.length < 2){ if (errEl) errEl.textContent = "You need at least 2 players."; return; }
+  const qs = buildQuestions(SET.rounds, ids.length);
+  if (!qs.length){ if (errEl) errEl.textContent = "Pick at least one question pack or add questions."; return; }
+  const base = {...g, settings:{rounds:qs.length, ansSec:SET.ansSec, voteSec:SET.voteSec}, questions:qs, scores:{}, stats:{}, names:namesMap(g), subjects:shuffle(ids), run:(g.run||0)+1};
+  const rs = roundState(base, 0);
+  S.game = {...base, ...rs, questions:withSubject(base.questions, 0, rs.cur)};
+  lastStamp = null;
+  commit();
+}
+function eligibleVoters(g){ return present().filter(id => id !== (g.cur && g.cur.subjectId)); }
+function allAnswered(g){ const k=akey(g); const ids=present(); return ids.length>0 && ids.every(id => S.players[id].answers && S.players[id].answers[k]); }
+function allVoted(g){ const k=akey(g); const ids=eligibleVoters(g); return ids.length>0 && ids.every(id => S.players[id].votes && S.players[id].votes[k]); }
+function toVote(g){
+  const k = akey(g), cur = g.cur;
+  const truth = cur.t==="fact" ? cur.answer : (S.players[cur.subjectId] && S.players[cur.subjectId].answers && S.players[cur.subjectId].answers[k]);
+  if (!truth) return {phase:"reveal", phaseEndsAt:Date.now()+10000, options:[], reveal:{skipped:true, msg: nameOf(cur.subjectId) + " didn't answer in time, so nobody scores this round.", points:{}}};
+  const opts = [{id:rid(), text:String(truth), truth:true, authors:[]}];
+  const idx = {[norm(truth)]:0};
+  for (const id of Object.keys(S.players).sort()){
+    if (id === cur.subjectId) continue;
+    const a = S.players[id].answers && S.players[id].answers[k];
+    if (!a) continue;
+    const n = norm(a);
+    if (n in idx) opts[idx[n]].authors.push(id);
+    else { idx[n] = opts.length; opts.push({id:rid(), text:String(a), truth:false, authors:[id]}); }
+  }
+  if (opts.length < 2) return {phase:"reveal", phaseEndsAt:Date.now()+10000, options:opts.map(o=>({...o, voters:[]})), reveal:{skipped:true, msg:"Nobody wrote a fake answer, so there was nothing to vote on.", points:{}}};
+  return {phase:"vote", phaseEndsAt:Date.now()+(g.settings.voteSec||30)*1000, options:shuffle(opts), reveal:null};
+}
+function toReveal(g){
+  const k = akey(g), cur = g.cur;
+  const pts = {}, stats = JSON.parse(JSON.stringify(g.stats||{}));
+  const add = (id, n) => { pts[id] = (pts[id]||0) + n; };
+  const st = (id, f) => { stats[id] = stats[id] || {fooled:0, truths:0, gullible:0}; stats[id][f]++; };
+  const opts = g.options.map(o => ({...o, voters:[]}));
+  for (const id of Object.keys(S.players)){
+    if (id === cur.subjectId) continue;
+    const v = S.players[id].votes && S.players[id].votes[k];
+    const o = opts.find(x => x.id === v);
+    if (!o || o.authors.includes(id)) continue;
+    o.voters.push(id);
+    if (o.truth){ add(id, 2); st(id, "truths"); if (cur.subjectId) add(cur.subjectId, 1); }
+    else { for (const a of o.authors){ add(a, 1); st(a, "fooled"); } st(id, "gullible"); }
+  }
+  const t = opts.find(o=>o.truth);
+  for (const a of (t ? t.authors : [])){ add(a, 2); st(a, "truths"); }
+  const scores = Object.assign({}, g.scores||{});
+  for (const [id,n] of Object.entries(pts)) scores[id] = (scores[id]||0) + n;
+  for (const id of Object.keys(S.players)) if (!(id in scores)) scores[id] = 0;
+  return {phase:"reveal", phaseEndsAt:Date.now()+25000, options:opts, scores, stats, reveal:{skipped:false, points:pts}};
+}
+function toNext(g){
+  const i = g.round + 1;
+  if (i >= g.questions.length) return {phase:"final", phaseEndsAt:0};
+  const rs = roundState(g, i);
+  return {...rs, questions:withSubject(g.questions, i, rs.cur)};
+}
+function advance(){
+  const g = G(); if (!g || !isHost()) return;
+  const stamp = g.run + ":" + g.round + ":" + g.phase;
+  if (lastStamp === stamp) return;
+  lastStamp = stamp;
+  let ch = null;
+  if (g.phase === "answer") ch = toVote(g);
+  else if (g.phase === "vote") ch = toReveal(g);
+  else if (g.phase === "reveal") ch = toNext(g);
+  if (!ch) return;
+  S.game = {...g, ...ch, names:namesMap(g)};
+  commit();
+}
+function hostTick(){
+  const g = G(); if (!g || !isHost()) return;
+  const t = Date.now();
+  if (g.phase === "answer" && (allAnswered(g) || t >= g.phaseEndsAt)) advance();
+  else if (g.phase === "vote" && (allVoted(g) || t >= g.phaseEndsAt)) advance();
+  else if (g.phase === "reveal" && t >= g.phaseEndsAt) advance();
+}
+function endEarly(){ const g=G(); S.game = {...g, phase:"final", phaseEndsAt:0, names:namesMap(g)}; commit(); }
+function playAgain(){
+  const g=G();
+  const ps = {}; for (const [id,p] of Object.entries(S.players)) if (p.online !== false) ps[id] = p;
+  S.players = ps;
+  S.game = {...g, phase:"lobby", round:-1, questions:[], cur:null, options:null, reveal:null, scores:{}, stats:{}, phaseEndsAt:0, names:namesMap(g)};
+  commit();
+}
+
+/* ---------------- Shared in-game pieces ---------------- */
+function roundHeader(label){
+  const g = G();
+  return el("div",{class:"card flat", style:"padding:12px 16px"},
+    el("div",{class:"roundbar"},
+      el("span",{class:"rn", text:"Round " + (g.round+1) + "/" + g.questions.length}),
+      el("span",{class:"small muted", text:label}),
+      el("span",{class:"timer", id:"timer"})),
+    el("div",{class:"track"}, el("i",{id:"bar", style:"width:100%"})));
+}
+function questionCard(hint){
+  const g = G();
+  return el("div",{class:"card qcard"},
+    el("span",{class:"pack", text:g.cur.pack || "Question"}),
+    el("div",{class:"qtext", text:g.cur.text}),
+    hint ? el("div",{class:"hint", text:hint}) : null);
+}
+function hostBar(){
+  if (!isHost()) return null;
+  return el("div",{class:"row", style:"justify-content:space-between"},
+    el("button",{class:"ghost", type:"button", onclick:()=>{ lastStamp=null; advance(); }}, "Skip the timer"),
+    el("button",{class:"ghost", type:"button", onclick:endEarly}, "End game now"));
+}
+function statusChips(ids, doneFn, doneTag, waitTag){
+  return ids.map(id => pChip(id, doneFn(id) ? {cls:"done", tag:doneTag} : {cls:"wait", tag:waitTag}));
+}
+
+/* ---------- Answer ---------- */
+function scrAnswer(){
+  const g = G(), k = akey(g), cur = g.cur, me = S.players[ME.id] || {};
+  const mine = me.answers && me.answers[k];
+  const isSubj = cur.subjectId === ME.id;
+  const hint = cur.t === "friend"
+    ? (isSubj ? "This one's about you. Write your real answer. Friends will try to spot it." : "Write what " + nameOf(cur.subjectId) + " might say. Fool the others into picking yours.")
+    : "Write a fake answer convincing enough to fool your friends.";
+  const status = el("div",{class:"players", id:"status"});
+  let body;
+  if (mine){
+    body = el("div",{class:"card stack"}, el("div",{class:"eyebrow", text:isSubj ? "Your real answer" : "Your fake answer"}), el("div",{class:"locked", text:mine}), el("div",{class:"small muted", text:"Locked in. Waiting for everyone else."}));
+  } else {
+    const inp = el("input",{id:"ans", class:"inp", maxlength:"80", placeholder: isSubj ? "The truth…" : "Your lie…", autocomplete:"off"});
+    const err = el("div",{class:"err"});
+    const btn = el("button",{class:"btn", type:"button"}, "Lock it in");
+    const submit = () => {
+      const v = inp.value.trim().replace(/\s+/g," ");
+      if (!v){ err.textContent = "Write something first."; return; }
+      if (cur.t==="fact" && tooClose(v, cur.answer)){ err.textContent = "Too close to the real answer! Make up something else."; inp.select(); return; }
+      if (!send({t:"answer", k, v})){ err.textContent = "Not connected to the host right now. Try again in a moment."; return; }
+      btn.disabled = true; err.textContent = "";
+      setTimeout(() => { if (document.body.contains(btn)){ btn.disabled = false; err.textContent = "The host didn't get that. Tap again."; } }, 6000);
+    };
+    btn.onclick = submit;
+    inp.onkeydown = e => { if (e.key==="Enter") submit(); };
+    body = el("div",{class:"card stack"}, el("label",{class:"label", for:"ans", text:isSubj ? "Your real answer" : "Your fake answer"}), el("div",{class:"row"}, el("div",{class:"grow"}, inp), btn), err);
+    setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50);
+  }
+  return { node: el("div",{class:"stack"}, roundHeader("Write"), questionCard(hint), body,
+      el("div",{class:"card flat"}, el("div",{class:"eyebrow", text:"Who's done", style:"margin-bottom:8px"}), status), hostBar()),
+    upd(){ status.replaceChildren(...statusChips(present(), id => S.players[id].answers && S.players[id].answers[k], "done", "writing")); } };
+}
+
+/* ---------- Vote ---------- */
+function scrVote(){
+  const g = G(), k = akey(g), cur = g.cur, me = S.players[ME.id] || {};
+  const voted = me.votes && me.votes[k];
+  const isSubj = cur.subjectId === ME.id;
+  const status = el("div",{class:"players", id:"status"});
+  let body;
+  if (isSubj){
+    body = el("div",{class:"banner", text:"Sit back. Your friends are trying to find your real answer."});
+  } else if (voted){
+    const o = (g.options||[]).find(x=>x.id===voted);
+    body = el("div",{class:"card stack"}, el("div",{class:"eyebrow", text:"Your vote"}), el("div",{class:"locked", text:o ? o.text : "—"}), el("div",{class:"small muted", text:"Locked in. Waiting for the others."}));
+  } else {
+    const list = el("div",{class:"opts"}, ...(g.options||[]).map(o => {
+      const own = o.authors.includes(ME.id);
+      const b = el("button",{class:"opt", type:"button", disabled:own}, el("span",{text:o.text}), own ? el("span",{class:"mine", text:"yours"}) : null);
+      if (!own) b.onclick = () => {
+        if (!send({t:"vote", k, o:o.id})){ toast("Not connected to the host right now. Try again in a moment."); return; }
+        list.querySelectorAll("button").forEach(x=>x.disabled=true);
+        setTimeout(() => { if (document.body.contains(list)){ list.querySelectorAll("button").forEach(x=>{ if(!x.querySelector(".mine")) x.disabled=false; }); toast("The host didn't get your vote. Tap again."); } }, 6000);
+      };
+      return b;
+    }));
+    body = el("div",{class:"stack"}, el("div",{class:"eyebrow", text: cur.t==="friend" ? "Which is " + nameOf(cur.subjectId) + "'s real answer?" : "Which one is the real answer?"}), list);
+  }
+  return { node: el("div",{class:"stack"}, roundHeader("Vote"), questionCard(null), body,
+      el("div",{class:"card flat"}, el("div",{class:"eyebrow", text:"Who's voted", style:"margin-bottom:8px"}), status), hostBar()),
+    upd(){ status.replaceChildren(...statusChips(eligibleVoters(G()), id => S.players[id].votes && S.players[id].votes[k], "voted", "thinking")); } };
+}
+
+/* ---------- Reveal ---------- */
+function scoreboard(){
+  const g = G();
+  const ids = Array.from(new Set(Object.keys(g.scores||{}).concat(present())));
+  ids.sort((a,b)=>((g.scores||{})[b]||0)-((g.scores||{})[a]||0));
+  let rank = 0, prev = null;
+  return el("div",{class:"board"}, ...ids.map((id,i) => {
+    const sc = (g.scores||{})[id]||0; if (sc !== prev){ rank = i+1; prev = sc; }
+    return el("div",{class:"brow"+(rank===1?" first":"")}, el("span",{class:"rk", text:String(rank)}), el("span",{class:"nm", text:nameOf(id)+(id===ME.id?" (you)":"")}), el("span",{class:"sc", text:String(sc)}));
+  }));
+}
+function namesList(ids){ return ids.map(id => nameOf(id) + (id===ME.id ? " (you)" : "")).join(", "); }
+function scrReveal(){
+  const g = G(), cur = g.cur, rv = g.reveal || {};
+  const parts = [roundHeader("Results"), questionCard(null)];
+  if (rv.skipped){
+    parts.push(el("div",{class:"banner warn", text:rv.msg}));
+    const t = (g.options||[]).find(o=>o.truth);
+    if (t && cur.t==="fact") parts.push(el("div",{class:"res truth"}, el("div",{class:"who", text:"The truth"}), el("div",{class:"txt", text:t.text})));
+  } else {
+    const opts = (g.options||[]).slice().sort((a,b)=> (a.truth?1:0)-(b.truth?1:0) || b.voters.length-a.voters.length);
+    parts.push(el("div",{class:"stack", style:"gap:10px"}, ...opts.map((o,i) => {
+      const who = o.truth ? (cur.t==="friend" ? "The truth, from " + nameOf(cur.subjectId) : "The truth") : "Lie by " + namesList(o.authors);
+      const voters = o.voters.length ? (o.truth ? "Spotted by " : "Fooled ") + namesList(o.voters) : (o.truth ? "Nobody found it" : "Nobody fell for it");
+      const extra = o.truth && o.authors.length ? el("div",{class:"voters", text:"Mind readers who wrote the same thing: " + namesList(o.authors)}) : null;
+      return el("div",{class:"res " + (o.truth ? "truth" : "lie"), style:"animation-delay:" + (i*0.12) + "s"},
+        el("div",{class:"who", text:who}), el("div",{class:"txt", text:o.text}), el("div",{class:"voters", text:voters}), extra);
+    })));
+    const pts = Object.entries(rv.points||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+    parts.push(el("div",{class:"card flat"}, el("div",{class:"eyebrow", text:"Points this round", style:"margin-bottom:8px"}),
+      pts.length ? el("div",{class:"points"}, ...pts.map(([id,n]) => el("span",{class:"pts"}, nameOf(id) + (id===ME.id?" (you)":"") + " ", el("b",{text:"+"+n})))) : el("div",{class:"small muted", text:"Nobody scored."})));
+  }
+  parts.push(el("div",{class:"card"}, el("div",{class:"eyebrow", text:"Scores"}), scoreboard()));
+  const last = g.round + 1 >= g.questions.length;
+  if (isHost()) parts.push(el("button",{class:"btn block", type:"button", onclick:()=>{ lastStamp=null; advance(); }}, last ? "See final results" : "Next question"), hostBar());
+  else parts.push(el("div",{class:"banner small", text:"The host moves on when everyone's ready, or automatically when the timer runs out."}));
+  return { node: el("div",{class:"stack"}, ...parts) };
+}
+
+/* ---------- Final ---------- */
+function scrFinal(){
+  const g = G(), st = g.stats || {}, scores = g.scores || {};
+  const ids = Array.from(new Set(Object.keys(scores).concat(present())));
+  const best = (f) => { let top=null, v=0; for (const id of ids){ const n=(st[id]&&st[id][f])||0; if (n>v){ v=n; top=id; } } return top ? {id:top, v} : null; };
+  const aw = [["Best Psycher","fooled", n=>"Fooled friends " + n + (n===1?" time":" times")],["Truth Seeker","truths", n=>"Found the truth " + n + (n===1?" time":" times")],["Most Gullible","gullible", n=>"Fell for " + n + (n===1?" lie":" lies")]]
+    .map(([t,f,d]) => { const b = best(f); return b ? el("div",{class:"award"}, el("div",{class:"t", text:t}), el("div",{class:"n", text:nameOf(b.id)}), el("div",{class:"d", text:d(b.v)})) : null; }).filter(Boolean);
+  const sorted = ids.slice().sort((a,b)=>(scores[b]||0)-(scores[a]||0));
+  const winner = sorted[0];
+  const tied = sorted.filter(id => (scores[id]||0) === (scores[winner]||0));
+  return { node: el("div",{class:"stack"},
+    el("section",{class:"hero"}, el("div",{class:"eyebrow", text:"Game over"}), el("h2",{text: tied.length>1 ? "It's a tie!" : nameOf(winner) + " wins!"})),
+    el("div",{class:"card"}, el("div",{class:"eyebrow", text:"Final scores"}), scoreboard()),
+    aw.length ? el("div",{class:"awards"}, ...aw) : null,
+    isHost() ? el("button",{class:"btn block", type:"button", onclick:playAgain}, "Play again with this group") : el("div",{class:"banner small", text:"Waiting for " + nameOf(g.hostId) + " to start another game. You can stay in the room."}),
+    el("div",{class:"row", style:"justify-content:center"}, leaveButton())) };
+}
+
+/* ---------------- Timer loop ---------------- */
+function tick(){
+  const g = G();
+  const t = $("#timer"), bar = $("#bar");
+  if (g && t && g.phaseEndsAt){
+    const total = g.phase==="answer" ? g.settings.ansSec*1000 : g.phase==="vote" ? g.settings.voteSec*1000 : 25000;
+    const left = Math.max(0, g.phaseEndsAt - now());
+    const s = Math.ceil(left/1000);
+    t.textContent = Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+    t.classList.toggle("low", s <= 10);
+    if (bar) bar.style.width = Math.max(0, Math.min(100, left/total*100)) + "%";
+  }
+  hostTick();
+}
+setInterval(tick, 250);
+window.addEventListener("load", boot);
+</script>
+</body>
+</html>
